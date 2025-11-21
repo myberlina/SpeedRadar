@@ -1,0 +1,5 @@
+# Allow the web server to restart the timing and results services
+
+Cmnd_Alias RADAR_RESTART_COMMANDS = /usr/bin/systemctl restart radar_socket.service, /usr/sbin/poweroff
+
+www-data ALL=(ALL) NOPASSWD: RADAR_RESTART_COMMANDS
