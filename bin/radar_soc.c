@@ -20,9 +20,11 @@
 #include <arpa/inet.h>
 #define _GNU_SOURCE
 #include <sys/socket.h>
+#include <yaml.h>
 
 
 int	run_gap = 1000;
+int	port = 251;
 
 struct time_struct_s
 {
@@ -42,7 +44,7 @@ struct cmd1_s
 	uint8_t	sensitivity;
 	char	nl[2];
 } cmd1 = {
-	'C', 'F', 1, 5, 0, 5, '\r', '\n'
+	{ 'C', 'F' }, 1, 5, 0, 5, { '\r', '\n' }
 };
 
 struct cmd2_s
@@ -54,7 +56,7 @@ struct cmd2_s
 	uint8_t	units;
 	char	nl[2];
 } cmd2 = {
-	'C', 'F', 2, 1, 0, 0, '\r', '\n'
+	{ 'C', 'F' }, 2, 1, 0, 0, { '\r', '\n' }
 };
 
 char conf_q[] = "CF\07\0\0\0\0\0\0\0\0\0\0\r\n";
@@ -73,7 +75,7 @@ void do_perror(char *mesg)
 
 time_t base_time = 0;
 
-time_t time_h_setbase(void *ignore)
+void time_h_setbase(void *ignore)
 {
 	struct timespec now;
 
@@ -117,6 +119,102 @@ int set_radar_serial( char *dev_name )
 
 int	verbose=2;
 
+int getNumber(const char *key, const unsigned char *token, const int min, const int max, const int deflt)
+{
+    int         val;
+    char        *eos;
+
+    val = strtol((char *)token, &eos, 10);
+
+    if ((*eos != '\0') && (*eos != ' ')) {
+        fprintf(stderr, "Bad value for %s: %s\n", key, token);
+        return deflt;
+    }
+    if ((val < min) || (val > max)) {
+        fprintf(stderr, "Value must be between %d and %d for %s: %s\n", min, max, key, token);
+        return deflt;
+    }
+
+    return val;
+}
+
+void readConf(char* filename) {
+    FILE* fh = fopen(filename, "r");
+    yaml_parser_t parser;
+    yaml_token_t token;
+
+    if (!yaml_parser_initialize(&parser))
+        fputs("Failed to initialize parser!\n", stderr);
+    if (fh == NULL)
+        fputs("Failed to open file!\n", stderr);
+    yaml_parser_set_input_file(&parser, fh);
+
+
+    /*  state = 0 = expect key
+     *  state = 1 = expect value
+     */
+    int	  state = 0;
+    char  *tk = NULL;
+
+    do {
+        yaml_parser_scan(&parser, &token);
+        switch(token.type) {
+            case YAML_KEY_TOKEN:     state = 0; break;
+            case YAML_VALUE_TOKEN:   state = 1; break;
+            case YAML_SCALAR_TOKEN:
+                if (state == 1) {
+                    if (!strcmp(tk, "title")) {
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "comment")) {
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "run_gap")) {
+                        run_gap = getNumber(tk, token.data.scalar.value, 1000, 1000000, 1000);
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "min_speed")) {
+                        cmd1.min_speed = getNumber(tk, token.data.scalar.value, 1, 100, 5);
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "angle")) {
+                        cmd1.angle = getNumber(tk, token.data.scalar.value, 0, 90, 0);
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "sensitivity")) {
+                        cmd1.sensitivity = getNumber(tk, token.data.scalar.value, 0, 100, 5);
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "direction")) {
+                        cmd2.dir = getNumber(tk, token.data.scalar.value, 0, 2, 1);
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "rate")) {
+                        cmd2.rate = getNumber(tk, token.data.scalar.value, 0, 20, 0);
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "units")) {
+                        cmd2.units = getNumber(tk, token.data.scalar.value, 0, 1, 0);
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "port")) {
+                        port = getNumber(tk, token.data.scalar.value, 1, 65535, 251);
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "debug")) {
+                        verbose = getNumber(tk, token.data.scalar.value, 0, 10, 1);
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "device")) {
+                        serial_name = strdup((char *)token.data.scalar.value);
+                    } else {
+                        printf("Unrecognised key: %s: %s\n", tk, token.data.scalar.value);
+                    }
+                } else if (state == 0) {
+                    if (tk != NULL) free(tk);
+                      tk = strdup((char *)token.data.scalar.value);
+                }
+                break;
+           default: break;
+           }
+       if (token.type != YAML_STREAM_END_TOKEN)
+           yaml_token_delete(&token);
+   } while (token.type != YAML_STREAM_END_TOKEN);
+
+   yaml_token_delete(&token);
+   yaml_parser_delete(&parser);
+   fclose(fh);
+}
+
 int get_speed(int radar_fd)
 {
 	static char	buff[512];
@@ -130,7 +228,7 @@ int get_speed(int radar_fd)
 	*buf_end = '\0';
 
 	if (verbose>4) {
-	  printf("Radar IN(%d:%d): <<%s>>\n", (buf_end - buff), len, buff);
+	  printf("Radar IN(%ld:%d): <<%s>>\n", (buf_end - buff), len, buff);
 	}
 	char	*find_V = buf_end; 
 	char	*partial_V = NULL;
@@ -370,6 +468,8 @@ int main(int argc, char **argv)
 
 	time_h_setbase(NULL);
 
+	readConf("/etc/radar/radar.conf");
+
 	radar_fd = set_radar_serial(serial_name);
 
 	/* Configure the Radar */
@@ -382,7 +482,7 @@ int main(int argc, char **argv)
 	write( radar_fd, conf_q, sizeof(conf_q)-1);
 	usleep(200000);
 
-	listen_fd = create_listen(251);
+	listen_fd = create_listen(port);
 	main_loop(radar_fd, listen_fd);
 
 }
