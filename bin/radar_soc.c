@@ -262,7 +262,7 @@ int get_speed(int radar_fd)
 	    buf_ptr++; partial_V++;
 	  }
 	}
-	if (verbose) {
+	if (verbose > 1) {
 	  printf("Radar speed %d\n", speed);
 	}
 	return speed;
@@ -429,7 +429,8 @@ void main_loop(int radar_fd, int listen_fd)
             }
           }
 	  if (got_new_speed || ((last_update + 1000) < now)) {
-	    printf("Do update  new speed %d  last_update %ld  now  %ld\n", got_new_speed, last_update, now);
+	    if (verbose>2)
+	      printf("Do update  new speed %d  last_update %ld  now  %ld\n", got_new_speed, last_update, now);
             update_clients(clients, MAX_CLIENTS, ts);
 	    last_update = now;
 	  }
