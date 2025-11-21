@@ -1,3 +1,6 @@
 
-CFLAGS =  -std=gnu99 -Wall -Werror -g -l yaml
+CFLAGS =  -std=gnu99 -Wall -Werror -g
 
+LDLIBS =  -lyaml
+
+all: radar_soc
