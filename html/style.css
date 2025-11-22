@@ -1,0 +1,139 @@
+body {
+font-family:Arial;
+font-size:16px;
+}
+input {
+font-family:Arial;
+font-size:16px;
+}
+label{
+font-family:Arial;
+font-size:16px;
+}
+select{
+font-family:Arial;
+font-size:16px;
+}
+.tight_table {
+border: 1px solid black;
+border-collapse: collapse;
+}
+.tight_even {
+border: 1px solid black;
+background-color: #E2EDF9;
+border-collapse: collapse;
+}
+.tight_odd {
+border: 1px solid black;
+background-color: #B3E8FF;
+border-collapse: collapse;
+}
+.fg_red {
+color: red;
+}
+.fg_green {
+color: green;
+}
+.fg_blue {
+color: blue;
+}
+.tblSaveForm {
+border-top:3px SkyBlue solid;
+background-color: #f8f8f8;
+}
+.header {
+background-color: SkyBlue;
+}
+.tablerow {
+background-color: #A7D6F1;
+color:white;
+}
+.button {
+padding:2px;
+border-radius:3px;
+}
+.del_button {
+background-color: Pink;
+padding:3px;
+border-color:white;
+border-radius:4px;
+color:white;
+}
+.message {
+color: #FF0000;
+text-align: center;
+width: 100%;
+}
+.txtField {
+padding: 2px;
+border:#90e090 1px solid;
+border-radius:4px;
+}
+.input_number{
+width:60px;
+}
+.newClass {
+background-color: #AAAAFF;
+font-size:18px;
+font-weight: bold;
+color:#101010;
+}
+.evenRow {
+background-color: #E2EDF9;
+font-size:14px;
+color:#101010;
+}
+.evenRow:hover {
+background-color: #a0e0a0;
+}
+.oddRow {
+background-color: #B3E8FF;
+font-size:14px;
+color:#101010;
+}
+.oddRow:hover {
+background-color: #a0e0a0;
+}
+.evenRow-hilight {
+background-color: #E2EDF9;
+font-size:16px;
+color:#101010;
+font-weight:bold
+}
+.evenRow-hilight:hover {
+background-color: #a0e0a0;
+}
+.oddRow-hilight {
+background-color: #B3E8FF;
+font-size:16px;
+color:#101010;
+font-weight:bold
+}
+.oddRow-hilight:hover {
+background-color: #a0e0a0;
+}
+.tblListForm {
+border-top:2px #999999 solid;
+}
+.listheader {
+background-color: #a0ffa0;
+font-size:18px;
+font-weight:bold;
+}
+.new_owner {
+border:7px;
+font-size:16px;
+border-color: #ffe0e0;
+background-color: #ffe0e0;
+}
+.new_owner_add {
+border:7px;
+font-size:14px;
+border-color: #ffe0e0;
+background-color: #ffe0e0;
+}
+.link{
+text-decoration:none;
+color:#5e8fc7;
+font-size:13px;
+}
