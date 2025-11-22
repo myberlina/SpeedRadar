@@ -33,6 +33,7 @@
           if(chk_chnged('Title'))	{ $config['title'] = $_POST['Title']; };
           if(chk_chnged('Comment'))	{ $config['comment'] = $_POST['Comment']; };
           if(chk_chnged('Device'))	{ $config['device'] = $_POST['Device'];				$restart_radar=1; };
+          if(chk_chnged('Debug'))	{ $config['debug'] = intval($_POST['Debug']);			$restart_radar=1; };
           if(chk_chnged('RunGap'))	{ $config['run_gap'] = intval($_POST['RunGap'] * 100);		$restart_radar=1; };
           if(chk_chnged('Direction'))	{ $config['direction'] = intval($_POST['Direction']);		$restart_radar=1; };
           if(chk_chnged('Angle'))	{ $config['angle'] = intval($_POST['Angle']);			$restart_radar=1; };
@@ -175,6 +176,7 @@
   $safe_title="";
   $safe_comment="";
   $safe_dev_path="";
+  $safe_debug="";
   $safe_run_gap="";
   $safe_direction="bogus";
   $safe_direction_opt=$dir_undef;
@@ -193,6 +195,8 @@
     $safe_title=htmlspecialchars($config['title'],ENT_QUOTES);
     $safe_comment=htmlspecialchars($config['comment'],ENT_QUOTES);
     $safe_dev_path=htmlspecialchars($config['device'],ENT_QUOTES);
+    if (isset($config['debug']))
+      $safe_debug=htmlspecialchars($config['debug']);
     if (isset($config['run_gap']))
       $safe_run_gap=intval($config['run_gap']) / 100;
     if (isset($config['min_speed']))
@@ -292,9 +296,15 @@
     echo "</tr>\n";
 
     echo "<tr>\n <th class=\"listheader\"> Radar Serial Device </th>\n";
-    echo "<td colspan=\"3\"><input type=\"hidden\" name=\"OrigDevice\" value=\"$safe_dev_path\" id=\"OrigDevice\">";
-    echo "<input type=\"text\" size=\"20\" placeholder=\"Radar Serial Device\" name=\"Device\" id=\"Device\" class=\"txtField\" required value=\"$safe_dev_path\" oninput=\"haveUpdate()\" >\n";
-    echo "</td></tr>\n";
+    echo "<td colspan=\"1\"><input type=\"hidden\" name=\"OrigDevice\" value=\"$safe_dev_path\" id=\"OrigDevice\">";
+    echo "<input type=\"text\" size=\"12\" placeholder=\"Radar Serial Device\" name=\"Device\" id=\"Device\" class=\"txtField\" required value=\"$safe_dev_path\" oninput=\"haveUpdate()\" >\n";
+    echo "</td>\n";
+
+    echo "<th class=\"listheader\"> Debug </th>\n";
+    echo "<td><input type=\"hidden\" name=\"OrigDebug\" value=\"$safe_debug\" id=\"OrigDebug\">";
+    echo "<input type=\"number\" size=\"3\" min=\"0\" max=\"5\" placeholder=\"0\" name=\"Debug\" id=\"Debug\" class=\"input_number\" required value=\"$safe_debug\" oninput=\"haveUpdate()\" ></td>\n";
+    echo "</tr>\n";
+
 
     echo "<tr>\n <th colspan=\"4\" class=\"listheader\"> Radar Module Configuration </th></tr>\n";
 
