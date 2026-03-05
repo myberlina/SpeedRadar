@@ -3,7 +3,7 @@
  <head>
   <title>Radar</title>
 
-  <script src="https://cdn.plot.ly/plotly-3.3.0.min.js"></script>
+  <script src="/cdn.plot.ly/plotly-3.3.0.min.js"></script>
 
   <script type="text/javascript">
      var ws = new WebSocket('ws://'+location.host+'/ws/radar1/');
@@ -64,7 +64,7 @@
 	     case "T":
 		time = the_data[i].substring(1) / 100;
 		//document.getElementById('Time').textContent = time;
-		if ((num > 0) && (num < 90)) {
+		if ((num > 0) && (num < 200)) {
 		  if ((num == 1) && (speed_axis.length > 3)) {
 		    /* console.log("started new trace\n"); /* */
 		    time_prev = time_axis;
@@ -105,10 +105,10 @@
  </head>
  <body>
    <table>
-    <tr> <th colspan=2 style="font-size:160%"> Speed </th> </tr>
-    <tr> <th colspan=2 style="font-size:180%" id="speed"> waiting </th> </tr>
-    <tr> <th width=80> Max </th> <th width=80> Cnr </th></tr>
-    <tr> <th style="font-size:140%" id="Max"> -.- </th> <th style="font-size:140%" id="Cnr"> -.- </th> </tr>
+    <tr> <th colspan=2 style="font-size:160%"> Max </th> </tr>
+    <tr> <th colspan=2 style="font-size:180%" id="Max"> waiting </th> </tr>
+    <tr> <th width=80> Current </th> <th width=80> Corner? </th></tr>
+    <tr> <th style="font-size:140%" id="speed"> -.- </th> <th style="font-size:140%" id="Cnr"> -.- </th> </tr>
 <!--
     <tr> <th> Num </th> <th> Time </th></tr>
     <tr> <td id="Num"> - </td> <td id="Time"> - </td> </tr>
