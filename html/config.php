@@ -325,12 +325,12 @@
 
     echo "<th class=\"listheader\"> Rate </th>\n";
     echo "<td><input type=\"hidden\" name=\"OrigRate\" value=\"$safe_rate\" id=\"OrigRate\">";
-    echo "<input type=\"number\" size=\"3\" min=\"0\" max=\"10\" placeholder=\"0\" name=\"Rate\" id=\"Rate\" class=\"input_number\" required value=\"$safe_rate\" oninput=\"haveUpdate()\" ></td>\n";
+    echo "<input type=\"number\" size=\"3\" min=\"0\" max=\"10\" placeholder=\"0\" name=\"Rate\" id=\"Rate\" title=\"lower is faster\" class=\"input_number\" required value=\"$safe_rate\" oninput=\"haveUpdate()\" > 22,11,5/s</td>\n";
     echo "</tr>\n";
 
     echo "<tr>\n <th class=\"listheader\"> Sensitivity </th>\n";
-    echo "<td><input type=\"hidden\" name=\"OrigSensitivity\" value=\"$safe_sensitivity\" id=\"OrigSensitivity\">";
-    echo "<input type=\"number\" size=\"4\" min=\"1\" max=\"100\" placeholder=\"5\" name=\"Sensitivity\" id=\"Sensitivity\" class=\"input_number\" min=0 value=\"$safe_sensitivity\" oninput=\"haveUpdate()\" ></td>\n";
+    echo "<td><input type=\"hidden\" name=\"OrigSensitivity\" value=\"$safe_sensitivity\" title=\"lame comment\" id=\"OrigSensitivity\">";
+    echo "<input type=\"number\" size=\"4\" min=\"1\" max=\"15\" placeholder=\"5\" name=\"Sensitivity\" id=\"Sensitivity\" title=\"Lower is more sensitive\" class=\"input_number\" min=0 value=\"$safe_sensitivity\" oninput=\"haveUpdate()\" > 1 - 15 </td>\n";
 
     echo "<th class=\"listheader\"> Units </th>\n";
     echo "<td><input type=\"hidden\" name=\"OrigUnits\" value=\"$safe_units\" id=\"OrigUnits\">";
