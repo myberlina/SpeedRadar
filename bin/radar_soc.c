@@ -196,6 +196,9 @@ void readConf(char* filename) {
                         free(tk); tk=NULL;
                     } else if (!strcmp(tk, "device")) {
                         serial_name = strdup((char *)token.data.scalar.value);
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "save_ver")) {
+                        free(tk); tk=NULL;
                     } else {
                         printf("Unrecognised key: %s: %s\n", tk, token.data.scalar.value);
                     }
@@ -362,6 +365,7 @@ void main_loop(int radar_fd, int listen_fd)
 	time_t	last_update = 0;
 	time_t	time_base = 0;
 
+	int prev_speed=0;
 	while (1) {
 	  int got_new_speed;
 	  int poll_slot;
@@ -398,6 +402,7 @@ void main_loop(int radar_fd, int listen_fd)
 		  ts->cnt = 0;
 		  time_base=now;
 		  ts->time = 0;
+		  prev_speed=0;
 		}
 		else {
 		  ts->cnt++;
@@ -411,11 +416,18 @@ void main_loop(int radar_fd, int listen_fd)
 		else if (new_speed < ts->cnr_speed) {
 		  ts->cnr_speed = new_speed;
 		}
-		if (verbose) printf("Speeds %ld Curr %3d.%d  Max %3d.%d  Cnr %3d.%d\n",
+		if (verbose) {
+		  printf("Speeds %ld Curr %3d.%d  Max %3d.%d  Cnr %3d.%d\n",
 			now,
 			ts->curr_speed / 10, ts->curr_speed % 10,
 			ts->max_speed / 10, ts->max_speed % 10,
 			ts->cnr_speed / 10, ts->cnr_speed % 10);
+		}
+		if ((new_speed < ts->max_speed) && (prev_speed == ts->max_speed)) {
+		  printf("Time: %ld MaxSpeed: %3d.%d\n", time(NULL),
+			ts->max_speed / 10, ts->max_speed % 10);
+		}
+		prev_speed = new_speed;
 	      }
 	    }
 	    if (fd_watch[LISTEN].revents & POLLIN) {
