@@ -271,7 +271,7 @@ int get_speed(int radar_fd)
 	return speed;
 }
 
-void accept_client(int client_fds[], int max_clients, int *num_clients, int listen_fd)
+int accept_client(int client_fds[], int max_clients, int *num_clients, int listen_fd)
 {
 	int new_conn = accept(listen_fd, NULL, NULL);
 
@@ -289,6 +289,7 @@ void accept_client(int client_fds[], int max_clients, int *num_clients, int list
 	    }
 	  }
 	}
+	return new_conn;
 }
 
 void handle_keepalives(int client_fd, int client_fds[], int max_clients, int *num_clients)
@@ -432,7 +433,10 @@ void main_loop(int radar_fd, int listen_fd)
 	    }
 	    if (fd_watch[LISTEN].revents & POLLIN) {
 	      num_evt--;
-	      accept_client(clients, MAX_CLIENTS, &num_clients, listen_fd);
+	      int new_client = accept_client(clients, MAX_CLIENTS, &num_clients, listen_fd);
+	      if (new_client >= 0) {
+	            update_client(new_client, ts);
+              }
             }
 	    for (int i=CONN0; i < poll_slot; i++) {
 	      if (fd_watch[i].revents & POLLIN) {
