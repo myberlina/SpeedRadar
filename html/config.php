@@ -251,7 +251,7 @@
     readfile($icon_file);
 ?>
   </head>
-<body>
+<body onload="rate_change()">
   <div style="float:right">
    <a href="/">Main Menu</a>&nbsp; &nbsp; 
   </div>
@@ -280,6 +280,15 @@
             }
             document.getElementById('update_list').value=update_list;
             document.getElementById('submit-changes').disabled=(update_count == 0);
+    };
+    function rate_change(){
+	rate=document.getElementById("Rate").value;
+	update=document.getElementById("result_rate");
+        if (rate <= 4) {
+	    update.textContent = Math.floor(220 / (2 ** rate))/10 + " /sec";
+	} else {
+	    update.textContent = Math.floor((2 ** rate) / 2.2)/10 + " secs";
+	}
     };
   </script>
   <div class="message"><?php if(isset($message)) { echo $message; } ?> </div>
@@ -325,7 +334,7 @@
 
     echo "<th class=\"listheader\"> Rate </th>\n";
     echo "<td><input type=\"hidden\" name=\"OrigRate\" value=\"$safe_rate\" id=\"OrigRate\">";
-    echo "<input type=\"number\" size=\"3\" min=\"0\" max=\"10\" placeholder=\"0\" name=\"Rate\" id=\"Rate\" title=\"lower is faster\" class=\"input_number\" required value=\"$safe_rate\" oninput=\"haveUpdate()\" > 22,11,5/s</td>\n";
+    echo "<input type=\"number\" size=\"3\" min=\"0\" max=\"10\" placeholder=\"0\" name=\"Rate\" id=\"Rate\" title=\"lower is faster\" class=\"input_number\" required value=\"$safe_rate\" oninput=\"haveUpdate()\" onchange=\"rate_change()\"> 22,11,5/s : <strong id=\"result_rate\">--</strong></td>\n";
     echo "</tr>\n";
 
     echo "<tr>\n <th class=\"listheader\"> Sensitivity </th>\n";
