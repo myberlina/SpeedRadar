@@ -21,6 +21,7 @@
 #define _GNU_SOURCE
 #include <sys/socket.h>
 #include <yaml.h>
+#include <signal.h>
 
 
 int	run_gap = 1000;
@@ -337,6 +338,14 @@ void update_clients(int client_fds[], int max_clients, struct time_struct_s *ts)
         }
 }
 
+void handle_sigterm(int sig)
+{
+	fflush(stdout);
+	printf("Received SIGTERM - @%lu\n", time(NULL));
+	printf(" - shutting down\n");
+	fflush(stdout);
+	exit(0);
+}
 
 #define	MAX_CLIENTS	10
 enum poll_fds { SERIAL=0, LISTEN, CONN0, MAX_POLL = MAX_CLIENTS+2 };
@@ -354,6 +363,12 @@ void main_loop(int radar_fd, int listen_fd)
 	//int		max_speed = 0;
 	//int		cnr_speed = 0;
 	//int		curr_speed = 0;
+
+	struct sigaction sig_term_action;
+	memset(&sig_term_action, 0, sizeof(sig_term_action));
+	sig_term_action.sa_handler = handle_sigterm;
+
+	sigaction(SIGTERM, &sig_term_action, NULL);
 
 	for(int i=0; i < MAX_CLIENTS; i++) {
 	  clients[i] = -1;
