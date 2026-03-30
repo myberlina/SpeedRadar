@@ -27,13 +27,15 @@
 int	run_gap = 1000;
 int	port = 251;
 
-struct time_struct_s
+struct speeds_struct_s
 {
 	int	max_speed;
 	int	cnr_speed;
 	int	curr_speed;
 	int	time;
 	int	cnt;
+	int	prev_max;
+	time_t	max_time;
 };
 
 struct cmd1_s
@@ -314,22 +316,23 @@ void handle_keepalives(int client_fd, int client_fds[], int max_clients, int *nu
 }
 
 // void update_client(int fd, int max_speed, int cnr_speed, int curr_speed)
-void update_client(int fd, struct time_struct_s *ts)
+void update_client(int fd, struct speeds_struct_s *ts)
 {
 	char	Speed_Update[512];
 
-	int len=snprintf(Speed_Update, sizeof(Speed_Update), "S%d.%d M%d.%d C%d.%d N%d T%d\n",
+	int len=snprintf(Speed_Update, sizeof(Speed_Update), "S%d.%d M%d.%d C%d.%d N%d T%d P%d.%d\n",
 		ts->curr_speed / 10, ts->curr_speed % 10,
 		ts->max_speed / 10, ts->max_speed % 10,
 		ts->cnr_speed / 10, ts->cnr_speed % 10,
-		ts->cnt, ts->time
+		ts->cnt, ts->time,
+		ts->prev_max / 10, ts->prev_max % 10
 	);
 
 	write(fd, Speed_Update, len);
 }
 
 // void update_clients(int client_fds[], int max_clients, int max_speed, int cnr_speed, int curr_speed)
-void update_clients(int client_fds[], int max_clients, struct time_struct_s *ts)
+void update_clients(int client_fds[], int max_clients, struct speeds_struct_s *ts)
 {
 	for(int i=0; i < max_clients; i++) {
 	  if (client_fds[i] >= 0) {
@@ -355,8 +358,8 @@ void main_loop(int radar_fd, int listen_fd)
 	int		clients[MAX_CLIENTS];
 	struct pollfd	fd_watch[MAX_POLL];
 
-	struct time_struct_s	ts_data;
-	struct time_struct_s	*ts = &ts_data;
+	struct speeds_struct_s	ts_data;
+	struct speeds_struct_s	*ts = &ts_data;
 
 	memset(ts, 0, sizeof(*ts));
 	time_t		max_speed_time = 0;
@@ -414,7 +417,9 @@ void main_loop(int radar_fd, int listen_fd)
 		ts->curr_speed = new_speed;
 	        if ((now - max_speed_time) > run_gap) {
 		  // New pass, restart timers
+		  ts->prev_max = ts->max_speed;
 		  ts->max_speed = 0;
+		  ts->max_time = 0;
 		  ts->cnt = 0;
 		  time_base=now;
 		  ts->time = 0;
@@ -428,6 +433,7 @@ void main_loop(int radar_fd, int listen_fd)
 		  ts->max_speed = new_speed;
 		  ts->cnr_speed = new_speed;
 	          max_speed_time = now;
+		  ts->max_time = time(NULL);
 		}
 		else if (new_speed < ts->cnr_speed) {
 		  ts->cnr_speed = new_speed;
@@ -440,7 +446,7 @@ void main_loop(int radar_fd, int listen_fd)
 			ts->cnr_speed / 10, ts->cnr_speed % 10);
 		}
 		if ((new_speed < ts->max_speed) && (prev_speed == ts->max_speed)) {
-		  printf("Time: %ld MaxSpeed: %3d.%d\n", time(NULL),
+		  printf("Time: %ld MaxSpeed: %3d.%d\n", ts->max_time,
 			ts->max_speed / 10, ts->max_speed % 10);
 		}
 		prev_speed = new_speed;
