@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Radar</title>
+
+  <script src="/cdn.plot.ly/plotly-3.3.0.min.js"></script>
+
+  <style>
+        th, td {
+              padding-top: 1px;
+              padding-bottom: 1px;
+              padding-left: 40px;
+              padding-right: 50px;
+        }
+  </style>
+
+
+  <script type="text/javascript">
+     var ws = new WebSocket('ws://'+location.host+'/ws/radar1/');
+     function keepAlive(timeout = 25000) { 
+       /* console.log('keepAlive called!\n');  /* */
+       /* console.log(ws.readyState);	/* */
+       if (ws.readyState == ws.OPEN) {  
+         ws.send('\n');  
+       }  
+       else {
+         /* console.log('Try to re-connect!\n');  /* */
+         ws = new WebSocket('ws://'+location.host+'/ws/radar1/');
+         ws.onmessage = got_message;
+         ws.onerror = got_error;
+       }
+       timerId = setTimeout(keepAlive, timeout);  
+     };
+     speed_axis = [];
+     time_axis = [];
+     speed_data = [
+       {
+	x:	time_axis,
+	y:	speed_axis,
+	mode:"lines"
+       },
+     ];
+     const	speed_layout = {
+	xaxis: { title: "seconds"},	
+	yaxis: { range: [-5, 160], title: "km/h"},	
+     };
+
+     function got_error(event) {
+	document.getElementById('speed').textContent = "lost";
+     };
+
+     function got_message(event) {
+        //document.getElementById('response').textContent = event.data;
+	the_data = event.data.split(" ");
+	num = -1;
+	for (let i=0; i < the_data.length; i++) {
+	   switch (the_data[i].substring(0,1)) {
+	     case "S":
+		speed = the_data[i].substring(1);
+		document.getElementById('speed').textContent = speed;
+		break;
+	     case "M":
+		max_speed = the_data[i].substring(1);
+		document.getElementById('Max').textContent = max_speed;
+		break;
+	     case "C":
+		cnr_speed = the_data[i].substring(1);
+		break;
+	     case "N":
+		num = the_data[i].substring(1);
+		//document.getElementById('Num').textContent = num;
+		break;
+	     case "T":
+		time = the_data[i].substring(1) / 100;
+		//document.getElementById('Time').textContent = time;
+		if ((num > 0) && (num < 200)) {
+		  if ((num == 1) && (speed_axis.length > 3)) {
+		    /* console.log("started new trace\n"); /* */
+		    time_prev = time_axis;
+		    speed_prev = speed_axis;
+		    time_axis = new Array();
+		    speed_axis = new Array();
+                    speed_data = [
+                      {
+	               x:	time_axis,
+	               y:	speed_axis,
+	               mode:"lines",
+		       name:"curr"
+                      },
+                      {
+	               x:	time_prev,
+	               y:	speed_prev,
+	               mode:"lines",
+		       name:"prev"
+                      }
+                      ];
+		  }
+		  speed_axis[num] = speed;
+		  time_axis[num] = time;
+		  Plotly.newPlot("speedPlot", speed_data, speed_layout, {displayModeBar: false});
+		}
+		break;
+	   }
+	}
+       //ws.send(' ');
+     }
+     ws.onmessage = got_message;
+     ws.onerror = got_error;
+     keepAlive(1000); /* */
+     /* console.log('console test!\n');  /* */
+
+  </script>
+
+ </head>
+ <body>
+   <table align="center">
+    <tr> <th style="font-size:300%"> Current </th> <th style="font-size:500%"> Max </th> <th> &nbsp; </th> </tr>
+    <tr> <th style="font-size:450%" id="speed"> -.- </th> <th style="font-size:1250%" id="Max"> waiting </th> </tr>
+   </table>
+   <div id="speedPlot" align="center" style="width:100%;max-width:700px"></div>
+ </body>
+</html>
+
