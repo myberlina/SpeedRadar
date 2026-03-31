@@ -25,7 +25,9 @@
 
 
 int	run_gap = 1000;
+int	update = 500;
 int	port = 251;
+int	port_slow = 252;
 
 struct speeds_struct_s
 {
@@ -173,6 +175,9 @@ void readConf(char* filename) {
                     } else if (!strcmp(tk, "run_gap")) {
                         run_gap = getNumber(tk, token.data.scalar.value, 1000, 1000000, 1000);
                         free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "update")) {
+                        update = getNumber(tk, token.data.scalar.value, 1000, 1000000, 1000);
+                        free(tk); tk=NULL;
                     } else if (!strcmp(tk, "min_speed")) {
                         cmd1.min_speed = getNumber(tk, token.data.scalar.value, 1, 100, 5);
                         free(tk); tk=NULL;
@@ -193,6 +198,9 @@ void readConf(char* filename) {
                         free(tk); tk=NULL;
                     } else if (!strcmp(tk, "port")) {
                         port = getNumber(tk, token.data.scalar.value, 1, 65535, 251);
+                        free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "port_slow")) {
+                        port_slow = getNumber(tk, token.data.scalar.value, 1, 65535, 252);
                         free(tk); tk=NULL;
                     } else if (!strcmp(tk, "debug")) {
                         verbose = getNumber(tk, token.data.scalar.value, 0, 10, 1);
@@ -315,7 +323,6 @@ void handle_keepalives(int client_fd, int client_fds[], int max_clients, int *nu
 	}
 }
 
-// void update_client(int fd, int max_speed, int cnr_speed, int curr_speed)
 void update_client(int fd, struct speeds_struct_s *ts)
 {
 	char	Speed_Update[512];
@@ -331,7 +338,6 @@ void update_client(int fd, struct speeds_struct_s *ts)
 	write(fd, Speed_Update, len);
 }
 
-// void update_clients(int client_fds[], int max_clients, int max_speed, int cnr_speed, int curr_speed)
 void update_clients(int client_fds[], int max_clients, struct speeds_struct_s *ts)
 {
 	for(int i=0; i < max_clients; i++) {
@@ -350,12 +356,15 @@ void handle_sigterm(int sig)
 	exit(0);
 }
 
-#define	MAX_CLIENTS	10
-enum poll_fds { SERIAL=0, LISTEN, CONN0, MAX_POLL = MAX_CLIENTS+2 };
-void main_loop(int radar_fd, int listen_fd)
+#define	MAX_FAST	5
+#define	MAX_SLOW	15
+enum poll_fds { SERIAL=0, LISTEN_FAST, LISTEN_SLOW, CONN0, MAX_POLL = MAX_FAST + MAX_SLOW + 3 };
+void main_loop(int radar_fd, int listen_fast, int listen_slow)
 {
-	int		num_clients = 0;
-	int		clients[MAX_CLIENTS];
+	int		num_fast = 0;
+	int		fast_clients[MAX_FAST];
+	int		num_slow = 0;
+	int		slow_clients[MAX_SLOW];
 	struct pollfd	fd_watch[MAX_POLL];
 
 	struct speeds_struct_s	ts_data;
@@ -373,13 +382,17 @@ void main_loop(int radar_fd, int listen_fd)
 
 	sigaction(SIGTERM, &sig_term_action, NULL);
 
-	for(int i=0; i < MAX_CLIENTS; i++) {
-	  clients[i] = -1;
+	for(int i=0; i < MAX_FAST; i++) {
+	  fast_clients[i] = -1;
+	}
+	for(int i=0; i < MAX_SLOW; i++) {
+	  slow_clients[i] = -1;
 	}
 
 	fd_watch[SERIAL].fd = radar_fd;
 	fd_watch[SERIAL].events = POLLIN;
-	fd_watch[LISTEN].fd = listen_fd;
+	fd_watch[LISTEN_FAST].fd = listen_fast;
+	fd_watch[LISTEN_SLOW].fd = listen_slow;
 
 	time_t	last_update = 0;
 	time_t	time_base = 0;
@@ -388,18 +401,33 @@ void main_loop(int radar_fd, int listen_fd)
 	while (1) {
 	  int got_new_speed;
 	  int poll_slot;
+	  int start_slow;
 
 	  got_new_speed = 0;
-	  if (num_clients < MAX_CLIENTS) {
-	    fd_watch[LISTEN].events = POLLIN;
+	  if (num_fast < MAX_FAST) {
+	    fd_watch[LISTEN_FAST].events = POLLIN;
           }
 	  else {  // Have max clients, don't respond to a new connection
-	    fd_watch[LISTEN].events = 0;
+	    fd_watch[LISTEN_FAST].events = 0;
+          }
+	  if (num_slow < MAX_SLOW) {
+	    fd_watch[LISTEN_SLOW].events = POLLIN;
+          }
+	  else {  // Have max clients, don't respond to a new connection
+	    fd_watch[LISTEN_SLOW].events = 0;
           }
 	  poll_slot = CONN0;
-	  for(int i=0; i < MAX_CLIENTS; i++) {
-            if (clients[i] >= 0) {
-	      fd_watch[poll_slot].fd = clients[i];
+	  for(int i=0; i < MAX_FAST; i++) {
+            if (fast_clients[i] >= 0) {
+	      fd_watch[poll_slot].fd = fast_clients[i];
+	      fd_watch[poll_slot].events = POLLIN | POLLHUP;
+	      poll_slot++;
+            }
+          }
+	  start_slow = poll_slot;
+	  for(int i=0; i < MAX_SLOW; i++) {
+            if (slow_clients[i] >= 0) {
+	      fd_watch[poll_slot].fd = slow_clients[i];
 	      fd_watch[poll_slot].events = POLLIN | POLLHUP;
 	      poll_slot++;
             }
@@ -452,24 +480,42 @@ void main_loop(int radar_fd, int listen_fd)
 		prev_speed = new_speed;
 	      }
 	    }
-	    if (fd_watch[LISTEN].revents & POLLIN) {
+	    if (fd_watch[LISTEN_FAST].revents & POLLIN) {
 	      num_evt--;
-	      int new_client = accept_client(clients, MAX_CLIENTS, &num_clients, listen_fd);
+	      int new_client = accept_client(fast_clients, MAX_FAST, &num_fast, listen_fast);
+	      if (new_client >= 0) {
+	            update_client(new_client, ts);
+              }
+            }
+	    if (fd_watch[LISTEN_SLOW].revents & POLLIN) {
+	      num_evt--;
+	      int new_client = accept_client(slow_clients, MAX_SLOW, &num_slow, listen_slow);
 	      if (new_client >= 0) {
 	            update_client(new_client, ts);
               }
             }
 	    for (int i=CONN0; i < poll_slot; i++) {
 	      if (fd_watch[i].revents & POLLIN) {
-	        handle_keepalives(fd_watch[i].fd, clients, MAX_CLIENTS, &num_clients);
+		if (i < start_slow) {
+	          handle_keepalives(fd_watch[i].fd, fast_clients, MAX_FAST, &num_fast);
+		}
+		else {
+	          handle_keepalives(fd_watch[i].fd, slow_clients, MAX_SLOW, &num_slow);
+		}
 	      }
             }
           }
-	  if (got_new_speed || ((last_update + 1000) < now)) {
+	  if ((last_update + update) < now) {
 	    if (verbose>2)
 	      printf("Do update  new speed %d  last_update %ld  now  %ld\n", got_new_speed, last_update, now);
-            update_clients(clients, MAX_CLIENTS, ts);
+            update_clients(fast_clients, MAX_FAST, ts);
+            update_clients(slow_clients, MAX_SLOW, ts);
 	    last_update = now;
+	  }
+	  else if (got_new_speed) {
+	    if (verbose>2)
+	      printf("Do update  new speed %d  last_update %ld  now  %ld\n", got_new_speed, last_update, now);
+            update_clients(fast_clients, MAX_FAST, ts);
 	  }
 	}
 }
@@ -502,7 +548,8 @@ int create_listen(int port)
 int main(int argc, char **argv)
 {
 	int	radar_fd = -1;
-	int	listen_fd = -1;
+	int	listen_fast = -1;
+	int	listen_slow = -1;
 
 	time_h_setbase(NULL);
 
@@ -520,7 +567,8 @@ int main(int argc, char **argv)
 	write( radar_fd, conf_q, sizeof(conf_q)-1);
 	usleep(200000);
 
-	listen_fd = create_listen(port);
-	main_loop(radar_fd, listen_fd);
+	listen_fast = create_listen(port);
+	listen_slow = create_listen(port_slow);
+	main_loop(radar_fd, listen_fast, listen_slow);
 
 }

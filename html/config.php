@@ -35,6 +35,7 @@
           if(chk_chnged('Device'))	{ $config['device'] = $_POST['Device'];				$restart_radar=1; };
           if(chk_chnged('Debug'))	{ $config['debug'] = intval($_POST['Debug']);			$restart_radar=1; };
           if(chk_chnged('RunGap'))	{ $config['run_gap'] = intval($_POST['RunGap'] * 100);		$restart_radar=1; };
+          if(chk_chnged('Update'))	{ $config['update'] = intval($_POST['Update'] * 100);		$restart_radar=1; };
           if(chk_chnged('Direction'))	{ $config['direction'] = intval($_POST['Direction']);		$restart_radar=1; };
           if(chk_chnged('Angle'))	{ $config['angle'] = intval($_POST['Angle']);			$restart_radar=1; };
           if(chk_chnged('MinSpeed'))	{ $config['min_speed'] = intval($_POST['MinSpeed']);		$restart_radar=1; };
@@ -42,6 +43,7 @@
           if(chk_chnged('Rate'))	{ $config['rate'] = intval($_POST['Rate']);			$restart_radar=1; };
           if(chk_chnged('Units'))	{ $config['units'] = intval($_POST['Units']);			$restart_radar=1; };
           if(chk_chnged('Port'))	{ $config['port'] = intval($_POST['Port']);			$restart_radar=1; };
+          if(chk_chnged('Port_slow'))	{ $config['port_slow'] = intval($_POST['Port_slow']);		$restart_radar=1; };
           $config['save_ver']++;
           if (yaml_emit_file("$config_base/_radar.conf", $config))
             if (rename("$config_base/_radar.conf", "$config_base/radar.conf")) {
@@ -178,6 +180,7 @@
   $safe_dev_path="";
   $safe_debug="";
   $safe_run_gap="";
+  $safe_update="";
   $safe_direction="bogus";
   $safe_direction_opt=$dir_undef;
   $safe_units="bogus";
@@ -187,6 +190,7 @@
   $safe_sensitivity="";
   $safe_rate="";
   $safe_port="";
+  $safe_port_slow="";
   $safe_save_ver="0";
   if (false === $config) {
     $message = "<font color=\"#c00000\"> No Config File </font>";
@@ -199,6 +203,8 @@
       $safe_debug=htmlspecialchars($config['debug']);
     if (isset($config['run_gap']))
       $safe_run_gap=intval($config['run_gap']) / 100;
+    if (isset($config['update']))
+      $safe_update=intval($config['update']) / 100;
     if (isset($config['min_speed']))
       $safe_min_speed=htmlspecialchars($config['min_speed']);
     if (isset($config['angle']))
@@ -219,6 +225,8 @@
       $safe_rate=htmlspecialchars($config['rate']);
     if (isset($config['port']))
       $safe_port=htmlspecialchars($config['port']);
+    if (isset($config['port_slow']))
+      $safe_port_slow=htmlspecialchars($config['port_slow']);
 
     $safe_save_ver=htmlspecialchars($config['save_ver']);
   }
@@ -352,9 +360,18 @@
     echo "<td><input type=\"hidden\" name=\"OrigRunGap\" value=\"$safe_run_gap\" id=\"OrigRunGap\">";
     echo "<input type=\"number\" size=\"4\" min=\"5\" max=\"100\" placeholder=\"20\" name=\"RunGap\" id=\"RunGap\" class=\"input_number\" required value=\"$safe_run_gap\" oninput=\"haveUpdate()\" >sec</td>\n";
 
+    echo "<th class=\"listheader\"> Update </th>\n";
+    echo "<td><input type=\"hidden\" name=\"OrigUpdate\" value=\"$safe_update\" id=\"OrigUpdate\">";
+    echo "<input type=\"number\" size=\"4\" min=\"1\" max=\"100\" placeholder=\"5\" name=\"Update\" id=\"Update\" class=\"input_number\" required value=\"$safe_update\" oninput=\"haveUpdate()\" >sec</td>\n";
+    echo "</tr>\n";
+
     echo "<th class=\"listheader\"> Port </th>\n";
     echo "<td><input type=\"hidden\" name=\"OrigPort\" value=\"$safe_port\" id=\"OrigPort\">";
     echo "<input type=\"number\" size=\"5\" min=\"1\" max=\"65535\" placeholder=\"251\" name=\"Port\" id=\"Port\" class=\"input_number\" required value=\"$safe_port\" oninput=\"haveUpdate()\" ></td>\n";
+
+    echo "<th class=\"listheader\"> Port Slow </th>\n";
+    echo "<td><input type=\"hidden\" name=\"OrigPort_slow\" value=\"$safe_port_slow\" id=\"OrigPort_slow\">";
+    echo "<input type=\"number\" size=\"5\" min=\"1\" max=\"65535\" placeholder=\"252\" name=\"Port_slow\" id=\"Port_slow\" class=\"input_number\" required value=\"$safe_port_slow\" oninput=\"haveUpdate()\" ></td>\n";
     echo "</tr>\n";
 
 
