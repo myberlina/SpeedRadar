@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <title>Radar</title>
+
+  <style>
+        th, td {
+              padding-top: 10px;
+              padding-bottom: 10px;
+              padding-left: 40px;
+              padding-right: 50px;
+        }
+  </style>
+
+
+  <script type="text/javascript">
+     var ws = new WebSocket('ws://'+location.host+'/ws/radar1-slow/');
+     function keepAlive(timeout = 25000) { 
+       /* console.log('keepAlive called!\n');  /* */
+       /* console.log(ws.readyState);	/* */
+       if (ws.readyState == ws.OPEN) {  
+         ws.send('\n');  
+       }  
+       else {
+         /* console.log('Try to re-connect!\n');  /* */
+         ws = new WebSocket('ws://'+location.host+'/ws/radar1-slow/');
+         ws.onmessage = got_message;
+         ws.onerror = got_error;
+       }
+       timerId = setTimeout(keepAlive, timeout);  
+     };
+
+     function got_error(event) {
+	document.getElementById('speed').textContent = "lost";
+     };
+
+     function got_message(event) {
+        //document.getElementById('response').textContent = event.data;
+	the_data = event.data.split(" ");
+	num = -1;
+	for (let i=0; i < the_data.length; i++) {
+	   switch (the_data[i].substring(0,1)) {
+	     case "P":
+		prev = the_data[i].substring(1);
+		document.getElementById('prev').textContent = prev;
+		break;
+	     case "M":
+		max_speed = the_data[i].substring(1);
+		document.getElementById('Max').textContent = max_speed;
+		break;
+	     case "C":
+		cnr_speed = the_data[i].substring(1);
+		break;
+	     case "N":
+		num = the_data[i].substring(1);
+		//document.getElementById('Num').textContent = num;
+		break;
+	     case "T":
+		time = the_data[i].substring(1) / 100;
+		break;
+	   }
+	}
+       //ws.send(' ');
+     }
+     ws.onmessage = got_message;
+     ws.onerror = got_error;
+     keepAlive(1000); /* */
+     /* console.log('console test!\n');  /* */
+
+  </script>
+
+ </head>
+ <body>
+   <table align="center">
+    <tr> <th style="font-size:300%"> PrevLap </th> <th style="font-size:500%"> Max </th> <th> &nbsp; </th> </tr>
+    <tr> <th style="font-size:450%" id="prev"> -.- </th> <th style="font-size:750%" id="Max"> waiting </th> </tr>
+   </table>
+ </body>
+</html>
+
