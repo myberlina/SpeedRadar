@@ -372,9 +372,11 @@ void main_loop(int radar_fd, int listen_fast, int listen_slow)
 
 	memset(ts, 0, sizeof(*ts));
 	time_t		max_speed_time = 0;
-	//int		max_speed = 0;
-	//int		cnr_speed = 0;
-	//int		curr_speed = 0;
+	int		max_speed_notlogged = 0;
+	time_t		log_lag = 400;		// 4 seconds
+
+	if ((run_gap / 4) < log_lag)  log_lag = (run_gap / 4);
+	if (update < log_lag)  log_lag = update;
 
 	struct sigaction sig_term_action;
 	memset(&sig_term_action, 0, sizeof(sig_term_action));
@@ -397,7 +399,6 @@ void main_loop(int radar_fd, int listen_fast, int listen_slow)
 	time_t	last_update = 0;
 	time_t	time_base = 0;
 
-	int prev_speed=0;
 	while (1) {
 	  int got_new_speed;
 	  int poll_slot;
@@ -451,7 +452,6 @@ void main_loop(int radar_fd, int listen_fast, int listen_slow)
 		  ts->cnt = 0;
 		  time_base=now;
 		  ts->time = 0;
-		  prev_speed=0;
 		}
 		else {
 		  ts->cnt++;
@@ -461,6 +461,7 @@ void main_loop(int radar_fd, int listen_fast, int listen_slow)
 		  ts->max_speed = new_speed;
 		  ts->cnr_speed = new_speed;
 	          max_speed_time = now;
+		  max_speed_notlogged = 1;
 		  ts->max_time = time(NULL);
 		}
 		else if (new_speed < ts->cnr_speed) {
@@ -473,11 +474,6 @@ void main_loop(int radar_fd, int listen_fast, int listen_slow)
 			ts->max_speed / 10, ts->max_speed % 10,
 			ts->cnr_speed / 10, ts->cnr_speed % 10);
 		}
-		if ((new_speed < ts->max_speed) && (prev_speed == ts->max_speed)) {
-		  printf("Time: %ld MaxSpeed: %3d.%d\n", ts->max_time,
-			ts->max_speed / 10, ts->max_speed % 10);
-		}
-		prev_speed = new_speed;
 	      }
 	    }
 	    if (fd_watch[LISTEN_FAST].revents & POLLIN) {
@@ -516,6 +512,10 @@ void main_loop(int radar_fd, int listen_fast, int listen_slow)
 	    if (verbose>2)
 	      printf("Do update  new speed %d  last_update %ld  now  %ld\n", got_new_speed, last_update, now);
             update_clients(fast_clients, MAX_FAST, ts);
+	  }
+	  if (max_speed_notlogged && ((now - max_speed_time) > run_gap / 4)) {
+	    printf("Time: %ld MaxSpeed: %3d.%d\n", ts->max_time, ts->max_speed / 10, ts->max_speed % 10);
+	    max_speed_notlogged = 0;
 	  }
 	}
 }
