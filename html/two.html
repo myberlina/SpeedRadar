@@ -31,7 +31,7 @@
      };
 
      function got_error(event) {
-	document.getElementById('speed').textContent = "lost";
+	document.getElementById('status').textContent = "lost";
      };
 
      function got_message(event) {
@@ -60,7 +60,7 @@
 		break;
 	   }
 	}
-       //ws.send(' ');
+	document.getElementById('status').textContent = "";
      }
      ws.onmessage = got_message;
      ws.onerror = got_error;
@@ -74,6 +74,7 @@
    <table align="center">
     <tr> <th style="font-size:300%"> PrevLap </th> <th style="font-size:500%"> Max </th> <th> &nbsp; </th> </tr>
     <tr> <th style="font-size:450%" id="prev"> -.- </th> <th style="font-size:750%" id="Max"> waiting </th> </tr>
+    <tr> <td colspan="2" id="status" align="center"> waiting </td> </tr>
    </table>
  </body>
 </html>
