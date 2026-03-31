@@ -1,0 +1,33 @@
+#!/bin/bash
+
+
+cat <<EOF
+Content-Type: text/html
+
+<html>
+<head>
+<meta HTTP-EQUIV="content-type" CONTENT="text/html; charset=ISO-8859-1">
+<meta HTTP-EQUIV="refresh" CONTENT="2">
+<title>Wifi Signal</title>
+</head>
+<body>
+  <div style="float:right">
+   <a href="/">Main Menu</a>&nbsp; &nbsp; 
+  </div>
+<H2 align="center">Wifi Signal</H2>
+<pre>
+EOF
+date
+#echo
+#nmcli dev status
+echo
+#nmcli dev wifi list | tee /dev/pts/0
+nmcli dev wifi list
+echo
+nmcli
+cat <<EOF
+</pre>
+</body>
+</html>
+EOF
+
