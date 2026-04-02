@@ -28,6 +28,9 @@ int	run_gap = 1000;
 int	update = 500;
 int	port = 251;
 int	port_slow = 252;
+FILE	*speed_log_file = NULL;
+char	*speed_log_filename = "/var/log/radar/radar1";
+ 
 
 struct speeds_struct_s
 {
@@ -373,10 +376,10 @@ void main_loop(int radar_fd, int listen_fast, int listen_slow)
 	memset(ts, 0, sizeof(*ts));
 	time_t		max_speed_time = 0;
 	int		max_speed_notlogged = 0;
-	time_t		log_lag = 400;		// 4 seconds
+	time_t		log_lag = 1000;		// 4 seconds
 
-	if ((run_gap / 4) < log_lag)  log_lag = (run_gap / 4);
-	if (update < log_lag)  log_lag = update;
+	if ((run_gap / 3) < log_lag)  log_lag = (run_gap / 3);
+	//if (update < log_lag)  log_lag = update;
 
 	struct sigaction sig_term_action;
 	memset(&sig_term_action, 0, sizeof(sig_term_action));
@@ -513,8 +516,12 @@ void main_loop(int radar_fd, int listen_fast, int listen_slow)
 	      printf("Do update  new speed %d  last_update %ld  now  %ld\n", got_new_speed, last_update, now);
             update_clients(fast_clients, MAX_FAST, ts);
 	  }
-	  if (max_speed_notlogged && ((now - max_speed_time) > run_gap / 4)) {
+	  if (max_speed_notlogged && ((now - max_speed_time) > log_lag)) {
 	    printf("Time: %ld MaxSpeed: %3d.%d\n", ts->max_time, ts->max_speed / 10, ts->max_speed % 10);
+	    if (speed_log_file >= 0) {
+	      fprintf(speed_log_file, "Time: %ld MaxSpeed: %3d.%d\n", ts->max_time, ts->max_speed / 10, ts->max_speed % 10);
+	      fflush(speed_log_file);
+	    }
 	    max_speed_notlogged = 0;
 	  }
 	}
@@ -545,7 +552,7 @@ int create_listen(int port)
 	return s;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char **aset_radar_serialrgv)
 {
 	int	radar_fd = -1;
 	int	listen_fast = -1;
@@ -556,6 +563,8 @@ int main(int argc, char **argv)
 	readConf("/etc/radar/radar.conf");
 
 	radar_fd = set_radar_serial(serial_name);
+
+	speed_log_file = fopen(speed_log_filename, "a");
 
 	/* Configure the Radar */
 	write( radar_fd, conf_q, sizeof(conf_q)-1);
