@@ -1,0 +1,14 @@
+[Unit]
+Description=Radar Speed Sender
+After=network-online.target
+ConditionPathExists=/var/log/radar/radar1
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+ExecStart=/home/dave/mqtt/radar_send_log
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
