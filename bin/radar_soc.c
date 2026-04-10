@@ -3,7 +3,7 @@
  *  share them to any one who had connected
  */
 
-#include<stdio.h>
+#include <stdio.h>
 #include <termios.h>
 #include <sys/ioctl.h>
 #include <errno.h>
@@ -552,7 +552,7 @@ int create_listen(int port)
 	return s;
 }
 
-int main(int argc, char **aset_radar_serialrgv)
+int main(int argc, char **argv)
 {
 	int	radar_fd = -1;
 	int	listen_fast = -1;
