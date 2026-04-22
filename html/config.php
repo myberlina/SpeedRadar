@@ -18,6 +18,7 @@
 
   if(count($_POST)>0) {
     $restart_radar = 0;
+    $restart_mqtt = 0;
     $file_changed = 0;
     if(isset($_POST['submit-changes'])&&('Save Changes' == $_POST['submit-changes'])&&
        isset($_POST['update_list'])&&('' != $_POST['update_list'])) {
@@ -44,6 +45,17 @@
           if(chk_chnged('Units'))	{ $config['units'] = intval($_POST['Units']);			$restart_radar=1; };
           if(chk_chnged('Port'))	{ $config['port'] = intval($_POST['Port']);			$restart_radar=1; };
           if(chk_chnged('Port_slow'))	{ $config['port_slow'] = intval($_POST['Port_slow']);		$restart_radar=1; };
+          if(chk_chnged('Update'))	{ $config['update'] = intval($_POST['Update']);			$restart_mqtt=1; };
+
+          if(chk_chnged('speed_log'))	{ $config['speed_log'] = $_POST['speed_log'];		$restart_radar=1; $restart_mqtt=1; };
+          if(chk_chnged('mqtt_clientname')) { $config['mqtt_clientname'] = $_POST['mqtt_clientname'];	$restart_mqtt=1; };
+          if(chk_chnged('mqtt_topic'))	{ $config['mqtt_topic'] = $_POST['mqtt_topic'];			$restart_mqtt=1; };
+          if(chk_chnged('mqtt_server'))	{ $config['mqtt_server'] = $_POST['mqtt_server'];		$restart_mqtt=1; };
+          if(chk_chnged('mqtt_port'))	{ $config['mqtt_port'] = intval($_POST['mqtt_port']);		$restart_mqtt=1; };
+          if(chk_chnged('mqtt_transport')) { $config['mqtt_transport'] = $_POST['mqtt_transport'];	$restart_mqtt=1; };
+          if(chk_chnged('mqtt_user'))	{ $config['mqtt_user'] = $_POST['mqtt_user'];			$restart_mqtt=1; };
+          if(chk_chnged('mqtt_pass'))	{ $config['mqtt_pass'] = $_POST['mqtt_pass'];			$restart_mqtt=1; };
+          if(chk_chnged('mqtt_path_base')) { $config['mqtt_path_base'] = $_POST['mqtt_path_base'];	$restart_mqtt=1; };
           $config['save_ver']++;
           if (yaml_emit_file("$config_base/_radar.conf", $config))
             if (rename("$config_base/_radar.conf", "$config_base/radar.conf")) {
@@ -149,16 +161,37 @@
       if ($restart_radar >= 1) {
         unset($results);
         if (!(false === exec("sudo /usr/bin/systemctl restart radar_socket.service 2>&1", $results, $rc)) && ($rc == 0)) {
-          $message = $message."<br><font color=\"#00a000\"> Timing service restarted </font>";
+          $message = $message."<br><font color=\"#00a000\"> Radar service restarted </font>";
         }
         else {
           $error_text="";
           foreach($results as $num => $line) $error_text=$error_text."$line<br>";
           if(!(strpos($error_text, "sudo: ")===false)) $error_text="sudo not correctly setup";
-          $message = $message."<br><font color=\"#c00000\"> Timing restart failed: $rc: $error_text</font>";
+          $message = $message."<br><font color=\"#c00000\"> Radar restart failed: $rc: $error_text</font>";
+        }
+      }
+      if ($restart_mqtt >= 1) {
+        unset($results);
+        if (!(false === exec("sudo /usr/bin/systemctl restart radar_send.service 2>&1", $results, $rc)) && ($rc == 0)) {
+          $message = $message."<br><font color=\"#00a000\"> MQTT service restarted </font>";
+        }
+        else {
+          $error_text="";
+          foreach($results as $num => $line) $error_text=$error_text."$line<br>";
+          if(!(strpos($error_text, "sudo: ")===false)) $error_text="sudo not correctly setup";
+          $message = $message."<br><font color=\"#c00000\"> MQTT restart failed: $rc: $error_text</font>";
         }
       }
     }
+  }
+
+  exec("/usr/bin/systemctl status radar_send.service 2>&1", $radar_send_status, $rc);
+  $radar_send_state="";
+  $radar_running="<font color=\"#c00000\"> Not running </font>";
+  foreach($radar_send_status as $num => $line) {
+    $radar_send_state=$radar_send_state."$line\n";
+    if(!(strpos($line, "Active: active (running) since ")===false))
+      $radar_running="<font color=\"#00a000\">running</font>";
   }
 
   unset($config);
@@ -191,6 +224,15 @@
   $safe_rate="";
   $safe_port="";
   $safe_port_slow="";
+  $safe_speed_log="";
+  $safe_mqtt_clientname="";
+  $safe_mqtt_topic="";
+  $safe_mqtt_server="";
+  $safe_mqtt_port="";
+  $safe_mqtt_transport="";
+  $safe_mqtt_user="";
+  $safe_mqtt_pass="";
+  $safe_mqtt_path_base="";
   $safe_save_ver="0";
   if (false === $config) {
     $message = "<font color=\"#c00000\"> No Config File </font>";
@@ -227,6 +269,25 @@
       $safe_port=htmlspecialchars($config['port']);
     if (isset($config['port_slow']))
       $safe_port_slow=htmlspecialchars($config['port_slow']);
+
+    if (isset($config['speed_log']))
+      $safe_speed_log=htmlspecialchars($config['speed_log']);
+    if (isset($config['mqtt_clientname']))
+      $safe_mqtt_clientname=htmlspecialchars($config['mqtt_clientname']);
+    if (isset($config['mqtt_topic']))
+      $safe_mqtt_topic=htmlspecialchars($config['mqtt_topic']);
+    if (isset($config['mqtt_server']))
+      $safe_mqtt_server=htmlspecialchars($config['mqtt_server']);
+    if (isset($config['mqtt_port']))
+      $safe_mqtt_port=htmlspecialchars($config['mqtt_port']);
+    if (isset($config['mqtt_transport']))
+      $safe_mqtt_transport=htmlspecialchars($config['mqtt_transport']);
+    if (isset($config['mqtt_user']))
+      $safe_mqtt_user=htmlspecialchars($config['mqtt_user']);
+    if (isset($config['mqtt_pass']))
+      $safe_mqtt_pass=htmlspecialchars($config['mqtt_pass']);
+    if (isset($config['mqtt_path_base']))
+      $safe_mqtt_path_base=htmlspecialchars($config['mqtt_path_base']);
 
     $safe_save_ver=htmlspecialchars($config['save_ver']);
   }
@@ -373,6 +434,53 @@
     echo "<td><input type=\"hidden\" name=\"OrigPort_slow\" value=\"$safe_port_slow\" id=\"OrigPort_slow\">";
     echo "<input type=\"number\" size=\"5\" min=\"1\" max=\"65535\" placeholder=\"252\" name=\"Port_slow\" id=\"Port_slow\" class=\"input_number\" required value=\"$safe_port_slow\" oninput=\"haveUpdate()\" ></td>\n";
     echo "</tr>\n";
+
+    echo "<tr>\n <th colspan=\"4\" class=\"listheader\" title=\"$radar_send_state\"> MQTT Forwarder <small>$radar_running(hover for status)</small></th></tr>\n";
+
+
+    echo "<th class=\"listheader\"> Speed Log File </th>\n";
+    echo "<td><input type=\"hidden\" name=\"Origspeed_log\" value=\"$safe_speed_log\" id=\"Origspeed_log\">";
+    echo "<input type=\"text\" size=\"30\" placeholder=\"speed_log\" name=\"speed_log\" id=\"speed_log\" class=\"txtField\" required value=\"$safe_speed_log\" oninput=\"haveUpdate()\" ></td>\n";
+
+    echo "</tr>\n";
+
+    echo "<th class=\"listheader\"> mqtt_server </th>\n";
+    echo "<td><input type=\"hidden\" name=\"Origmqtt_server\" value=\"$safe_mqtt_server\" id=\"Origmqtt_server\">";
+    echo "<input type=\"text\" size=\"30\" placeholder=\"mqtt_server\" name=\"mqtt_server\" id=\"mqtt_server\" class=\"txtField\" required value=\"$safe_mqtt_server\" oninput=\"haveUpdate()\" ></td>\n";
+
+    echo "<th class=\"listheader\"> mqtt_port </th>\n";
+    echo "<td><input type=\"hidden\" name=\"Origmqtt_port\" value=\"$safe_mqtt_port\" id=\"Origmqtt_port\">";
+    echo "<input type=\"number\" size=\"5\" min=\"1\" max=\"65535\" placeholder=\"443\" name=\"mqtt_port\" id=\"mqtt_port\" class=\"input_number\" required value=\"$safe_mqtt_port\" oninput=\"haveUpdate()\" ></td>\n";
+
+    echo "</tr>\n";
+
+    echo "<th class=\"listheader\"> mqtt_clientname </th>\n";
+    echo "<td><input type=\"hidden\" name=\"Origmqtt_clientname\" value=\"$safe_mqtt_clientname\" id=\"Origmqtt_clientname\">";
+    echo "<input type=\"text\" size=\"30\" placeholder=\"mqtt_clientname\" name=\"mqtt_clientname\" id=\"mqtt_clientname\" class=\"txtField\" required value=\"$safe_mqtt_clientname\" oninput=\"haveUpdate()\" ></td>\n";
+
+    echo "<th class=\"listheader\"> mqtt_topic </th>\n";
+    echo "<td><input type=\"hidden\" name=\"Origmqtt_topic\" value=\"$safe_mqtt_topic\" id=\"Origmqtt_topic\">";
+    echo "<input type=\"text\" size=\"30\" placeholder=\"mqtt_topic\" name=\"mqtt_topic\" id=\"mqtt_topic\" class=\"txtField\" required value=\"$safe_mqtt_topic\" oninput=\"haveUpdate()\" ></td>\n";
+
+    echo "</tr>\n";
+
+    echo "<th class=\"listheader\"> mqtt_user </th>\n";
+    echo "<td><input type=\"hidden\" name=\"Origmqtt_user\" value=\"$safe_mqtt_user\" id=\"Origmqtt_user\">";
+    echo "<input type=\"text\" size=\"30\" placeholder=\"mqtt_user\" name=\"mqtt_user\" id=\"mqtt_user\" class=\"txtField\" required value=\"$safe_mqtt_user\" oninput=\"haveUpdate()\" ></td>\n";
+
+    echo "<th class=\"listheader\"> mqtt_pass </th>\n";
+    echo "<td><input type=\"hidden\" name=\"Origmqtt_pass\" value=\"$safe_mqtt_pass\" id=\"Origmqtt_pass\">";
+    echo "<input type=\"text\" size=\"30\" placeholder=\"mqtt_pass\" name=\"mqtt_pass\" id=\"mqtt_pass\" class=\"txtField\" required value=\"$safe_mqtt_pass\" oninput=\"haveUpdate()\" ></td>\n";
+
+    echo "</tr>\n";
+
+    echo "<th class=\"listheader\"> mqtt_transport </th>\n";
+    echo "<td><input type=\"hidden\" name=\"Origmqtt_transport\" value=\"$safe_mqtt_transport\" id=\"Origmqtt_transport\">";
+    echo "<input type=\"text\" size=\"30\" placeholder=\"mqtt_transport\" name=\"mqtt_transport\" id=\"mqtt_transport\" class=\"txtField\" required value=\"$safe_mqtt_transport\" oninput=\"haveUpdate()\" ></td>\n";
+
+    echo "<th class=\"listheader\"> mqtt_path_base </th>\n";
+    echo "<td><input type=\"hidden\" name=\"Origmqtt_path_base\" value=\"$safe_mqtt_path_base\" id=\"Origmqtt_path_base\">";
+    echo "<input type=\"text\" size=\"30\" placeholder=\"mqtt_path_base\" name=\"mqtt_path_base\" id=\"mqtt_path_base\" class=\"txtField\" required value=\"$safe_mqtt_path_base\" oninput=\"haveUpdate()\" ></td>\n";
 
 
     echo "<tr><td colspan=\"1\" align=right style=\"border: 0px\"><input id=\"submit-changes\" type=\"submit\" name=\"submit-changes\" value=\"Save Changes\" disabled formenctype=\"multipart/form-data\"></td>";
