@@ -211,7 +211,12 @@ void readConf(char* filename) {
                     } else if (!strcmp(tk, "device")) {
                         serial_name = strdup((char *)token.data.scalar.value);
                         free(tk); tk=NULL;
+                    } else if (!strcmp(tk, "speed_log")) {
+                        speed_log_filename = strdup((char *)token.data.scalar.value);
+                        free(tk); tk=NULL;
                     } else if (!strcmp(tk, "save_ver")) {
+                        free(tk); tk=NULL;
+                    } else if (!strncmp(tk, "mqtt_", 5)) {
                         free(tk); tk=NULL;
                     } else {
                         printf("Unrecognised key: %s: %s\n", tk, token.data.scalar.value);
@@ -359,9 +364,27 @@ void handle_sigterm(int sig)
 	exit(0);
 }
 
+time_t get_midnight_t(const time_t *base_time)
+{
+	struct tm	midnight_tm;
+
+	if (verbose>1)
+	      printf("Updating midnight seconds since epoc\n");
+	
+	if (NULL != localtime_r(base_time, &midnight_tm)) {
+	  midnight_tm.tm_sec = 0;
+	  midnight_tm.tm_min = 0;
+	  midnight_tm.tm_hour = 10;	// Use 10am, then subtract 36000 secs to allow for daylightsavings probs
+	  return (mktime(&midnight_tm) - 36000);
+        }
+	return -1;
+}
+
+
 #define	MAX_FAST	5
 #define	MAX_SLOW	15
 enum poll_fds { SERIAL=0, LISTEN_FAST, LISTEN_SLOW, CONN0, MAX_POLL = MAX_FAST + MAX_SLOW + 3 };
+
 void main_loop(int radar_fd, int listen_fast, int listen_slow)
 {
 	int		num_fast = 0;
@@ -377,6 +400,8 @@ void main_loop(int radar_fd, int listen_fast, int listen_slow)
 	time_t		max_speed_time = 0;
 	int		max_speed_notlogged = 0;
 	time_t		log_lag = 1000;		// 4 seconds
+
+	time_t		midnight;
 
 	if ((run_gap / 3) < log_lag)  log_lag = (run_gap / 3);
 	//if (update < log_lag)  log_lag = update;
@@ -401,6 +426,9 @@ void main_loop(int radar_fd, int listen_fast, int listen_slow)
 
 	time_t	last_update = 0;
 	time_t	time_base = 0;
+
+	midnight = time(NULL);
+	midnight = get_midnight_t(&midnight);
 
 	while (1) {
 	  int got_new_speed;
@@ -506,20 +534,23 @@ void main_loop(int radar_fd, int listen_fast, int listen_slow)
           }
 	  if ((last_update + update) < now) {
 	    if (verbose>2)
-	      printf("Do update  new speed %d  last_update %ld  now  %ld\n", got_new_speed, last_update, now);
+	      printf("Do low_rate   update new speed %d  last_update %ld  now  %ld\n", got_new_speed, last_update, now);
             update_clients(fast_clients, MAX_FAST, ts);
             update_clients(slow_clients, MAX_SLOW, ts);
 	    last_update = now;
 	  }
 	  else if (got_new_speed) {
 	    if (verbose>2)
-	      printf("Do update  new speed %d  last_update %ld  now  %ld\n", got_new_speed, last_update, now);
+	      printf("Do high_rate update new speed %d  last_update %ld  now  %ld\n", got_new_speed, last_update, now);
             update_clients(fast_clients, MAX_FAST, ts);
 	  }
 	  if (max_speed_notlogged && ((now - max_speed_time) > log_lag)) {
-	    printf("Time: %ld MaxSpeed: %3d.%d\n", ts->max_time, ts->max_speed / 10, ts->max_speed % 10);
+	    if (ts->max_time > midnight + (24 * 3600)) {
+              midnight = get_midnight_t(&ts->max_time);
+	    }
+	    printf("Time: %ld MaxSpeed: %3d.%d Day_secs:%ld\n", ts->max_time, ts->max_speed / 10, ts->max_speed % 10, (ts->max_time - midnight));
 	    if (speed_log_file >= 0) {
-	      fprintf(speed_log_file, "Time: %ld MaxSpeed: %3d.%d\n", ts->max_time, ts->max_speed / 10, ts->max_speed % 10);
+	      fprintf(speed_log_file, "Time: %ld MaxSpeed: %3d.%d Day_secs:%ld\n", ts->max_time, ts->max_speed / 10, ts->max_speed % 10, (ts->max_time - midnight));
 	      fflush(speed_log_file);
 	    }
 	    max_speed_notlogged = 0;
