@@ -16,12 +16,25 @@
 
   $message="";
 
-  $on_off_val["on"] = "true";
-  $on_off_val["off"] = "false";
-  $on_off_val["1"] = "true";
-  $on_off_val["0"] = "false";
-  $on_off_val["true"] = "true";
-  $on_off_val["false"] = "false";
+  $on_off_val["on"] = "True";
+  $on_off_val["off"] = "False";
+  $on_off_val["1"] = "True";
+  $on_off_val["0"] = "False";
+  $on_off_val["True"] = "True";
+  $on_off_val["False"] = "False";
+  $on_off_val["true"] = "True";
+  $on_off_val["false"] = "False";
+  $on_off_val[true] = "True";
+  $on_off_val[false] = "False";
+
+  //$on_off_val["on"] = true;
+  //$on_off_val["off"] = false;
+  //$on_off_val["1"] = true;
+  //$on_off_val["0"] = false;
+  //$on_off_val["true"] = true;
+  //$on_off_val["false"] = false;
+  //$on_off_val[true] = true;
+  //$on_off_val[false] = false;
 
   if(count($_POST)>0) {
     $restart_radar = 0;
@@ -56,11 +69,12 @@
           if(chk_chnged('Update'))	{ $config['update'] = intval($_POST['Update']);			$restart_mqtt=1; };
 
           if(chk_chnged('speed_log'))	{ $config['speed_log'] = $_POST['speed_log'];		$restart_radar=1; $restart_mqtt=1; };
-          if(chk_chnged('mqtt_run'))	{ $config['mqtt_run'] = $_POST['mqtt_run'];		$restart_mqtt=1; $mqtt_run_changed=1; };
+          if(chk_chnged('mqtt_run'))	{ $config['mqtt_run'] = ('True' == $_POST['mqtt_run']);	$restart_mqtt=1; $mqtt_run_changed=1; };
           if(chk_chnged('mqtt_clientname')) { $config['mqtt_clientname'] = $_POST['mqtt_clientname'];	$restart_mqtt=1; };
           if(chk_chnged('mqtt_topic'))	{ $config['mqtt_topic'] = $_POST['mqtt_topic'];			$restart_mqtt=1; };
           if(chk_chnged('mqtt_server'))	{ $config['mqtt_server'] = $_POST['mqtt_server'];		$restart_mqtt=1; };
           if(chk_chnged('mqtt_port'))	{ $config['mqtt_port'] = intval($_POST['mqtt_port']);		$restart_mqtt=1; };
+          if(chk_chnged('mqtt_tls'))	{ $config['mqtt_tls'] = ('True' == $_POST['mqtt_tls']);		$restart_mqtt=1; };
           if(chk_chnged('mqtt_transport')) { $config['mqtt_transport'] = $_POST['mqtt_transport'];	$restart_mqtt=1; };
           if(chk_chnged('mqtt_user'))	{ $config['mqtt_user'] = $_POST['mqtt_user'];			$restart_mqtt=1; };
           if(chk_chnged('mqtt_pass'))	{ $config['mqtt_pass'] = $_POST['mqtt_pass'];			$restart_mqtt=1; };
@@ -167,7 +181,7 @@
     }
 
     if ($mqtt_run_changed == 1) {
-      if (isset($config['mqtt_run']) && isset($on_off_val[$config['mqtt_run']]) && ($on_off_val[$config['mqtt_run']] == "false")) {
+      if (isset($config['mqtt_run']) && isset($on_off_val[$config['mqtt_run']]) && ($on_off_val[$config['mqtt_run']] == "False")) {
         unset($results);
         if (!(false === exec("sudo /usr/bin/systemctl disable --now radar_send.service 2>&1", $results, $rc)) && ($rc == 0)) {
           $message = $message."<br><font color=\"#00a000\"> Radar MQTT service disabled </font>";
@@ -206,7 +220,7 @@
           $message = $message."<br><font color=\"#c00000\"> Radar restart failed: $rc: $error_text</font>";
         }
       }
-      if (isset($config['mqtt_run']) && isset($on_off_val[$config['mqtt_run']]) && ($on_off_val[$config['mqtt_run']] == "false"))
+      if (isset($config['mqtt_run']) && isset($on_off_val[$config['mqtt_run']]) && ($on_off_val[$config['mqtt_run']] == "False"))
         $restart_mqtt = 0;
       if ($restart_mqtt >= 1) {
         unset($results);
@@ -243,10 +257,14 @@
   $units[0] = '<option value="0" selected>km/h</option> <option value="1">mph</option> <option value="2">m/s</option>';
   $units[1] = '<option value="0">km/h</option> <option value="1" selected>mph</option> <option value="2">m/s</option>';
   $units[2] = '<option value="0">km/h</option> <option value="1">mph</option> <option value="2" selected>m/s</option>';
-  $off = '<option value="false" selected> Off </option> <option value="true"> On </option>';
-  $on = '<option value="false"> Off </option> <option value="true" selected> On </option>';
+  $off = '<option value="False" selected> Off </option> <option value="True"> On </option>';
+  $on = '<option value="False"> Off </option> <option value="True" selected> On </option>';
+  $on_off_opt["True"] = $on;
+  $on_off_opt["False"] = $off;
   $on_off_opt["true"] = $on;
   $on_off_opt["false"] = $off;
+  $on_off_opt[true] = $on;
+  $on_off_opt[false] = $off;
 
   $safe_title="";
   $safe_comment="";
@@ -271,6 +289,8 @@
   $safe_mqtt_topic="";
   $safe_mqtt_server="";
   $safe_mqtt_port="";
+  $safe_mqtt_tls="bogus";
+  $safe_mqtt_tls_opt=$off;
   $safe_mqtt_transport="";
   $safe_mqtt_user="";
   $safe_mqtt_pass="";
@@ -315,7 +335,7 @@
     if (isset($config['speed_log']))
       $safe_speed_log=htmlspecialchars($config['speed_log']);
     if (isset($config['mqtt_run']))
-      $safe_mqtt_run=htmlspecialchars($config['mqtt_run']);
+      $safe_mqtt_run=$config['mqtt_run'];
       if (isset($on_off_val[$safe_mqtt_run])) {
 	$safe_mqtt_run=$on_off_val[$safe_mqtt_run];
         $safe_mqtt_run_opt=$on_off_opt[$safe_mqtt_run];
@@ -328,6 +348,13 @@
       $safe_mqtt_server=htmlspecialchars($config['mqtt_server']);
     if (isset($config['mqtt_port']))
       $safe_mqtt_port=htmlspecialchars($config['mqtt_port']);
+    if (isset($config['mqtt_tls']))
+      #$safe_mqtt_tls=htmlspecialchars($config['mqtt_tls']);
+      $safe_mqtt_tls=$config['mqtt_tls'];
+      if (isset($on_off_val[$safe_mqtt_tls])) {
+	$safe_mqtt_tls=$on_off_val[$safe_mqtt_tls];
+        $safe_mqtt_tls_opt=$on_off_opt[$safe_mqtt_tls];
+      }
     if (isset($config['mqtt_transport']))
       $safe_mqtt_transport=htmlspecialchars($config['mqtt_transport']);
     if (isset($config['mqtt_user']))
@@ -503,7 +530,10 @@
 
     echo "<th class=\"listheader\"> mqtt_port </th>\n";
     echo "<td><input type=\"hidden\" name=\"Origmqtt_port\" value=\"$safe_mqtt_port\" id=\"Origmqtt_port\">";
-    echo "<input type=\"number\" size=\"5\" min=\"1\" max=\"65535\" placeholder=\"443\" name=\"mqtt_port\" id=\"mqtt_port\" class=\"input_number\" required value=\"$safe_mqtt_port\" oninput=\"haveUpdate()\" ></td>\n";
+    echo "<input type=\"number\" size=\"5\" min=\"1\" max=\"65535\" placeholder=\"443\" name=\"mqtt_port\" id=\"mqtt_port\" class=\"input_number\" required value=\"$safe_mqtt_port\" oninput=\"haveUpdate()\" >\n";
+
+    echo " &nbsp; TLS <input type=\"hidden\" name=\"Origmqtt_tls\" value=\"$safe_mqtt_tls\" id=\"Origmqtt_tls\">";
+    echo "<select name=\"mqtt_tls\" id=\"mqtt_tls\" style=\"width: $dir_width\" onchange=\"haveUpdate()\">$safe_mqtt_tls_opt</select></td>";
 
     echo "</tr><tr>\n";
 
