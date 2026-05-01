@@ -169,6 +169,10 @@ if __name__ == '__main__':
         mqtt_server = config['mqtt_server']
     if 'mqtt_port' in config :
         mqtt_port = config['mqtt_port']
+        if mqtt_port == 443 :
+            mqtt_tls = True
+    if 'mqtt_tls' in config :
+        mqtt_tls = config['mqtt_tls']
     if 'mqtt_transport' in config :
         mqtt_transport = config['mqtt_transport']
     if 'mqtt_user' in config :
@@ -186,7 +190,8 @@ if __name__ == '__main__':
 
     try:
         mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, mqtt_clientname, transport=mqtt_transport)
-        mqttc.tls_set(cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2)
+        if mqtt_tls == True :
+          mqttc.tls_set(cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2)
 
         mqttc.ws_set_options(path=mqtt_path_base)
 
