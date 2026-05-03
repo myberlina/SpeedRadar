@@ -130,6 +130,7 @@
             $message = "<font color=\"#00a000\"> Config Loaded </font>";
             $file_changed = 1;
             $restart_radar = 1;
+            $restart_mqtt = 1;
           }
           else {
             $errors = error_get_last();
@@ -172,6 +173,7 @@
             $message = "<font color=\"#00a000\"> Config Loaded </font>";
             $file_changed = 1;
             $restart_radar = 1;
+            $restart_mqtt = 1;
           }
           else {
             $errors = error_get_last();
