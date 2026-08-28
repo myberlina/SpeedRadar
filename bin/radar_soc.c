@@ -179,7 +179,7 @@ void readConf(char* filename) {
                         run_gap = getNumber(tk, token.data.scalar.value, 1000, 1000000, 1000);
                         free(tk); tk=NULL;
                     } else if (!strcmp(tk, "update")) {
-                        update = getNumber(tk, token.data.scalar.value, 1000, 1000000, 1000);
+                        update = getNumber(tk, token.data.scalar.value, 100, 10000, 500);
                         free(tk); tk=NULL;
                     } else if (!strcmp(tk, "min_speed")) {
                         cmd1.min_speed = getNumber(tk, token.data.scalar.value, 1, 100, 5);
@@ -548,9 +548,9 @@ void main_loop(int radar_fd, int listen_fast, int listen_slow)
 	    if (ts->max_time > midnight + (24 * 3600)) {
               midnight = get_midnight_t(&ts->max_time);
 	    }
-	    printf("Time: %ld MaxSpeed: %3d.%d Day_secs:%ld\n", ts->max_time, ts->max_speed / 10, ts->max_speed % 10, (ts->max_time - midnight));
-	    if (speed_log_file >= 0) {
-	      fprintf(speed_log_file, "Time: %ld MaxSpeed: %3d.%d Day_secs:%ld\n", ts->max_time, ts->max_speed / 10, ts->max_speed % 10, (ts->max_time - midnight));
+	    printf("Time: %ld MaxSpeed: %3d.%d Day_secs: %ld\n", ts->max_time, ts->max_speed / 10, ts->max_speed % 10, (ts->max_time - midnight));
+	    if (speed_log_file != NULL) {
+	      fprintf(speed_log_file, "Time: %ld MaxSpeed: %3d.%d Day_secs: %ld\n", ts->max_time, ts->max_speed / 10, ts->max_speed % 10, (ts->max_time - midnight));
 	      fflush(speed_log_file);
 	    }
 	    max_speed_notlogged = 0;
@@ -596,6 +596,9 @@ int main(int argc, char **argv)
 	radar_fd = set_radar_serial(serial_name);
 
 	speed_log_file = fopen(speed_log_filename, "a");
+	if (speed_log_file == NULL) {
+	  perror("Could not open speed_log_file");
+	}
 
 	/* Configure the Radar */
 	write( radar_fd, conf_q, sizeof(conf_q)-1);
