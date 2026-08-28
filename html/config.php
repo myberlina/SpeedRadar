@@ -70,7 +70,6 @@
           if(chk_chnged('Units'))	{ $config['units'] = intval($_POST['Units']);			$restart_radar=1; };
           if(chk_chnged('Port'))	{ $config['port'] = intval($_POST['Port']);			$restart_radar=1; };
           if(chk_chnged('Port_slow'))	{ $config['port_slow'] = intval($_POST['Port_slow']);		$restart_radar=1; };
-          if(chk_chnged('Update'))	{ $config['update'] = intval($_POST['Update']);			$restart_mqtt=1; };
 
           if(chk_chnged('speed_log'))	{ $config['speed_log'] = $_POST['speed_log'];		$restart_radar=1; $restart_mqtt=1; };
           if(chk_chnged('mqtt_run'))	{ $config['mqtt_run'] = ('True' == $_POST['mqtt_run']);	$restart_mqtt=1; $mqtt_run_changed=1; };
