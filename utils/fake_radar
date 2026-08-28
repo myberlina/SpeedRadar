@@ -1,0 +1,91 @@
+#!/usr/bin/perl
+
+require 5;
+
+use FileHandle;
+use IO::Pty;
+use Time::HiRes qw(usleep);
+#use Switch;
+
+
+
+$pty = new IO::Pty;
+
+
+unlink("/tmp/fake_radar") ;
+symlink($pty->ttyname, "/tmp/fake_radar") ;
+chmod 0666, $pty->ttyname ;
+
+print STDERR $pty->ttyname . "  symlinked to  /tmp/fake_radar\n";
+
+$pty->set_raw ;
+
+$|=1;
+$pty->autoflush(1);
+
+IO::Handle->input_record_separator("\n");
+##IO::Handle->input_record_separator("\r");  # May make debugging via cu easier
+
+$start=time;
+my %port_state, %port_bytes;
+
+
+$SIG{CHLD}="IGNORE";
+
+sub reader {
+  while (<$pty>) {
+    $keep= $_;
+    s/\r/\\r/g;
+    s/\n/\\n/g;
+    
+    print STDERR "Got : $_   ";
+  
+    $_ = $keep;
+    s/\r*//g;
+    s/\n*//g;
+  
+  }
+}
+
+sub writer {
+  while (1) {
+    $sleep = (30+(10 * rand()));
+    print STDERR "Sleeping : $sleep";
+    sleep($sleep);
+    ## Accellerating towards
+    $i = 40 + (20 * rand());
+    $speed = 30 + (20 * rand());
+    print STDERR "Accelerating for $i readings from $speed";
+    while ($i-- > 0) {
+      printf $pty "V+%05.1f\r\n", $speed;
+      $pty->flush();
+      $speed += 3 * rand();
+      usleep(20000)
+    }
+    ## about peak
+    $i = (20 * rand());
+    while ($i-- > 0) {
+      printf $pty "V+%05.1f\r\n", $speed;
+      $pty->flush();
+      $speed += 6 * rand() - 3;
+      usleep(20000)
+    }
+    ## about peak
+    $i = 20 + (20 * rand());
+    while ($i-- > 0) {
+      printf $pty "V+%05.1f\r\n", $speed;
+      $pty->flush();
+      $speed -= 6 * rand();
+      usleep(20000);
+    }
+  }
+}
+
+
+if (fork() == 0) {
+  reader
+}
+else {
+  writer
+}
+
